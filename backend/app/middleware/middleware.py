@@ -6,6 +6,9 @@ from app.utils.logger import logger
 class RequestLoggingMiddleware(BaseHTTPMiddleware):
     """Logs incoming HTTP requests, status codes, and execution latency."""
     async def dispatch(self, request: Request, call_next) -> Response:
+        if request.method == "OPTIONS":
+            return await call_next(request)
+
         start_time = time.time()
         
         # Skip health checks to avoid noise
@@ -38,6 +41,9 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     """Applies strict security headers to responses, with safe exceptions for API documentation."""
     async def dispatch(self, request: Request, call_next) -> Response:
+        if request.method == "OPTIONS":
+            return await call_next(request)
+
         response = await call_next(request)
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["X-Content-Type-Options"] = "nosniff"

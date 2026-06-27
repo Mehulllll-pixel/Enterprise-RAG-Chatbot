@@ -103,13 +103,15 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 async def generic_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     """Catches unhandled exceptions, logs backtrace, and returns safe 500 error."""
     logger.error(f"Unhandled Exception on {request.method} {request.url.path}", exc_info=exc)
+    import traceback
+    tb = "".join(traceback.format_exception(type(exc), exc, exc.__traceback__))
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content={
             "error": {
                 "code": "INTERNAL_SERVER_ERROR",
                 "message": "An unexpected error occurred. Please contact the administrator.",
-                "details": str(exc) if settings.DEBUG else None
+                "details": f"{type(exc).__name__}: {str(exc)}\nTraceback:\n{tb}"
             }
         }
     )
