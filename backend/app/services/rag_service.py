@@ -90,7 +90,8 @@ class RAGService:
         
         logger.info(f"Raw FAISS similarity matches retrieved for query '{search_query}':")
         for i, (doc, score) in enumerate(raw_matches):
-            logger.info(f" - Hit {i+1}: Score={score:.4f} | Source={doc.metadata.get('filename')} (Page {doc.metadata.get('page_number')}) | Text={doc.page_content[:80]}...")
+            safe_text = doc.page_content[:80].encode('ascii', 'replace').decode('ascii')
+            logger.info(f" - Hit {i+1}: Score={score:.4f} | Source={doc.metadata.get('filename')} (Page {doc.metadata.get('page_number')}) | Text={safe_text}...")
 
         # Filter matches (LangChain FAISS returns Euclidean L2 distance squared, range 0.0 to 4.0)
         # An L2 distance of 1.6 corresponds to a cosine similarity of 0.2 (2 - 2 * 0.2 = 1.6)
@@ -137,7 +138,7 @@ class RAGService:
         
         # 4. Compile prompt
         system_prompt = SYSTEM_RAG_PROMPT.format(context=context_str if context_str else "No document snippets retrieved.")
-        logger.info(f"Final System Prompt compiled for Ollama:\n{system_prompt}")
+        logger.info(f"Final System Prompt compiled for Ollama:\n{system_prompt.encode('ascii', 'replace').decode('ascii')}")
         
         # Build message transcript for Ollama
         messages = [{"role": "system", "content": system_prompt}]
