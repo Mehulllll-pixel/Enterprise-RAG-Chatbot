@@ -1,0 +1,104 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: enterprise_rag_db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: enterprise_rag
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: enterprise_rag_redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: enterprise_rag_ollama
+    restart: always
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama:/root/.ollama
+    # If the user has an NVIDIA GPU, they can uncomment the deploy section below
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: enterprise_rag_backend
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    environment:
+      - APP_ENV=production
+      - DEBUG=false
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/enterprise_rag
+      - REDIS_URL=redis://redis:6379/0
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - JWT_SECRET_KEY=94bc99f06df5c68f123f99496aefb834927a4192b0c34e0623a6f199b9cf9509
+      - JWT_REFRESH_SECRET_KEY=e71c99f06df5c68f123f99496aefb834927a4192b0c34e0623a6f199b9cf9508
+    volumes:
+      - backend_data:/app/data
+
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: enterprise_rag_worker
+    restart: always
+    command: celery -A app.workers.celery_app worker --loglevel=info
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - APP_ENV=production
+      - DEBUG=false
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/enterprise_rag
+      - REDIS_URL=redis://redis:6379/0
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - JWT_SECRET_KEY=94bc99f06df5c68f123f99496aefb834927a4192b0c34e0623a6f199b9cf9509
+      - JWT_REFRESH_SECRET_KEY=e71c99f06df5c68f123f99496aefb834927a4192b0c34e0623a6f199b9cf9508
+    volumes:
+      - backend_data:/app/data
+
+volumes:
+  pgdata:
+  redisdata:
+  ollama:
+  backend_data:
