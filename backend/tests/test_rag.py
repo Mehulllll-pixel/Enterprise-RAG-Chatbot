@@ -42,6 +42,7 @@ async def test_llm_chat_stream_generation():
             yield line
 
     mock_response.iter_lines = mock_iter_lines
+    mock_response.aiter_lines = mock_iter_lines
     
     # Mock httpx client stream
     mock_context_mgr = MagicMock()
