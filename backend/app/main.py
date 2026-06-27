@@ -45,13 +45,16 @@ app.add_exception_handler(Exception, generic_exception_handler)
 # Include API endpoints
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
+STARTUP_ERROR = None
+
 @app.get("/health", tags=["system"], status_code=status.HTTP_200_OK)
 async def health_check():
     """System health check endpoint."""
     return {
         "status": "healthy",
         "app_name": settings.APP_NAME,
-        "environment": settings.APP_ENV
+        "environment": settings.APP_ENV,
+        "startup_error": STARTUP_ERROR
     }
 
 # Startup and shutdown hooks
@@ -78,8 +81,20 @@ async def startup_event():
         env["PYTHONPATH"] = base_dir
 
         logger.info("Running database migrations via subprocess on startup...")
-        # Run Alembic upgrade head in a separate process with correct path and directory
-        subprocess.run([sys.executable, "-m", "alembic", "upgrade", "head"], check=True, env=env, cwd=base_dir)
+        # Run Alembic upgrade head in a separate process capturing its stdout/stderr
+        result = subprocess.run(
+            [sys.executable, "-m", "alembic", "upgrade", "head"],
+            capture_output=True,
+            text=True,
+            env=env,
+            cwd=base_dir
+        )
+        if result.returncode != 0:
+            raise RuntimeError(
+                f"Alembic exited with code {result.returncode}.\n"
+                f"Stdout: {result.stdout}\n"
+                f"Stderr: {result.stderr}"
+            )
         logger.info("Database migrations completed successfully.")
 
         logger.info("Running database seeding on startup...")
@@ -87,6 +102,9 @@ async def startup_event():
             await seed_database(session)
 
     except Exception as e:
+        global STARTUP_ERROR
+        import traceback
+        STARTUP_ERROR = f"{type(e).__name__}: {str(e)}\n{traceback.format_exc()}"
         logger.error(f"Failed to migrate/seed database on startup: {str(e)}")
 
 @app.on_event("shutdown")
