@@ -81,15 +81,43 @@ class Settings(BaseSettings):
     @field_validator("DATABASE_URL", mode="before")
     @classmethod
     def assemble_db_connection(cls, v: Optional[str], info) -> str:
-        if isinstance(v, str) and v:
-            return v
-        data = info.data
-        user = data.get("POSTGRES_USER")
-        pwd = data.get("POSTGRES_PASSWORD")
-        server = data.get("POSTGRES_SERVER")
-        port = data.get("POSTGRES_PORT")
-        db = data.get("POSTGRES_DB")
-        return f"postgresql+asyncpg://{user}:{pwd}@{server}:{port}/{db}"
+        db_url = v
+        if not isinstance(db_url, str) or not db_url:
+            data = info.data
+            user = data.get("POSTGRES_USER")
+            pwd = data.get("POSTGRES_PASSWORD")
+            server = data.get("POSTGRES_SERVER")
+            port = data.get("POSTGRES_PORT")
+            db = data.get("POSTGRES_DB")
+            db_url = f"postgresql+asyncpg://{user}:{pwd}@{server}:{port}/{db}"
+
+        # Normalize database URL if it is PostgreSQL to support asyncpg
+        if db_url and db_url.startswith("postgresql"):
+            from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
+            parsed = urlparse(db_url)
+            query_params = parse_qs(parsed.query)
+            
+            # Normalize sslmode to ssl=require
+            if "sslmode" in query_params:
+                sslmode_val = query_params.pop("sslmode")[0]
+                if sslmode_val != "disable":
+                    query_params["ssl"] = ["require"]
+                    
+            # Remove channel_binding
+            query_params.pop("channel_binding", None)
+            
+            # Rebuild URL
+            new_query = urlencode(query_params, doseq=True)
+            db_url = urlunparse((
+                parsed.scheme,
+                parsed.netloc,
+                parsed.path,
+                parsed.params,
+                new_query,
+                parsed.fragment
+            ))
+            
+        return db_url
 
     # Redis
     REDIS_HOST: str = "localhost"

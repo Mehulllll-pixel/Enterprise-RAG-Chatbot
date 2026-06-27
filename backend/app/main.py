@@ -60,8 +60,34 @@ async def startup_event():
     logger.info("Starting up Enterprise RAG Chatbot Service...")
     logger.info(f"Loaded config: Environment={settings.APP_ENV}, Debug={settings.DEBUG}")
     logger.info(f"Allowed CORS origins (BACKEND_CORS_ORIGINS): {settings.BACKEND_CORS_ORIGINS}")
+    
     # Connect Redis
     redis_client_manager.connect()
+
+    # Run database migrations and seeding programmatically
+    try:
+        import os
+        from alembic.config import Config
+        from alembic import command
+        from app.core.database import AsyncSessionLocal
+        from app.utils.seeder import seed_database
+
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        ini_path = os.path.join(base_dir, "alembic.ini")
+        alembic_cfg = Config(ini_path)
+        alembic_cfg.set_main_option("script_location", os.path.join(base_dir, "alembic"))
+        alembic_cfg.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+
+        logger.info("Running database migrations on startup...")
+        command.upgrade(alembic_cfg, "head")
+        logger.info("Database migrations completed successfully.")
+
+        logger.info("Running database seeding on startup...")
+        async with AsyncSessionLocal() as session:
+            await seed_database(session)
+
+    except Exception as e:
+        logger.error(f"Failed to migrate/seed database on startup: {str(e)}")
 
 @app.on_event("shutdown")
 async def shutdown_event():
