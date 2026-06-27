@@ -17,9 +17,36 @@ if is_sqlite:
         connect_args={"check_same_thread": False} if "sqlite" in settings.DATABASE_URL else {}
     )
 else:
+    from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
+    
+    db_url = settings.DATABASE_URL
+    if db_url and db_url.startswith("postgresql"):
+        parsed = urlparse(db_url)
+        query_params = parse_qs(parsed.query)
+        
+        # Normalize sslmode to ssl=require
+        if "sslmode" in query_params:
+            sslmode_val = query_params.pop("sslmode")[0]
+            if sslmode_val != "disable":
+                query_params["ssl"] = ["require"]
+                
+        # Remove channel_binding
+        query_params.pop("channel_binding", None)
+        
+        # Rebuild URL
+        new_query = urlencode(query_params, doseq=True)
+        db_url = urlunparse((
+            parsed.scheme,
+            parsed.netloc,
+            parsed.path,
+            parsed.params,
+            new_query,
+            parsed.fragment
+        ))
+
     # PostgreSQL pool settings for high concurrency
     engine = create_async_engine(
-        settings.DATABASE_URL,
+        db_url,
         echo=False,
         pool_size=20,
         max_overflow=10,
