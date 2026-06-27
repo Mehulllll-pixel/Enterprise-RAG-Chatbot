@@ -78,30 +78,38 @@ class RAGService:
             return
 
         # 3. Retrieve relevant chunks from FAISS
-        # Cosine distance limit: <= 1.0 (Cosine Similarity >= 0.0)
-        # We set a strict threshold (e.g. L2/cosine distance <= 0.85) to prevent pulling unrelated context
+        db_faiss = self.vector_service._load_or_create_index(department_id)
+        faiss_vector_count = db_faiss.index.ntotal
+        logger.info(f"FAISS total vector count in index (including dummy): {faiss_vector_count}")
+
         raw_matches = self.vector_service.similarity_search(
             department_id=department_id,
             query=search_query,
-            k=4,
-            score_threshold=0.85
+            k=4
         )
         
-        # Filter matches (FAISS L2/cosine distance: lower score means more similar)
-        # LangChain FAISS L2/cosine distance scores typically range 0.0 to 2.0 (for normalized vectors, cosine distance is 0 to 1)
-        # Cosine distance = 1 - cosine_similarity. Similarity score = 1 - distance.
+        logger.info(f"Raw FAISS similarity matches retrieved for query '{search_query}':")
+        for i, (doc, score) in enumerate(raw_matches):
+            logger.info(f" - Hit {i+1}: Score={score:.4f} | Source={doc.metadata.get('filename')} (Page {doc.metadata.get('page_number')}) | Text={doc.page_content[:80]}...")
+
+        # Filter matches (LangChain FAISS returns Euclidean L2 distance squared, range 0.0 to 4.0)
+        # An L2 distance of 1.6 corresponds to a cosine similarity of 0.2 (2 - 2 * 0.2 = 1.6)
         valid_matches = []
         for doc, score in raw_matches:
             if doc.metadata.get("type") == "sys":
                 continue # Skip initialization dummy vector
-            if score <= 0.90:  # Allow distance up to 0.9 (cosine similarity >= 0.1)
+            if score <= 1.60:
                 valid_matches.append((doc, score))
+            else:
+                logger.info(f" - Discarded Hit (distance {score:.4f} > 1.60): Source={doc.metadata.get('filename')}")
+
+        logger.info(f"Valid grounding chunks retained: {len(valid_matches)}")
 
         # Calculate confidence score
         if valid_matches:
-            # Average similarity score = Mean of (1 - distance)
+            # Average similarity score = Mean of (1 - normalized distance/2)
             avg_distance = sum(score for _, score in valid_matches) / len(valid_matches)
-            confidence_score = max(0.0, min(1.0, 1.0 - avg_distance))
+            confidence_score = max(0.0, min(1.0, 1.0 - (avg_distance / 2.0)))
         else:
             confidence_score = 0.0
 
@@ -129,6 +137,7 @@ class RAGService:
         
         # 4. Compile prompt
         system_prompt = SYSTEM_RAG_PROMPT.format(context=context_str if context_str else "No document snippets retrieved.")
+        logger.info(f"Final System Prompt compiled for Ollama:\n{system_prompt}")
         
         # Build message transcript for Ollama
         messages = [{"role": "system", "content": system_prompt}]

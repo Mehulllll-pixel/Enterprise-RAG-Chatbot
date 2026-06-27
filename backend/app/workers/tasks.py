@@ -4,6 +4,7 @@ import uuid
 from typing import List
 from app.workers.celery_app import celery_app
 from app.core.database import AsyncSessionLocal
+from app.core.config import settings
 from app.repositories.document_repository import DocumentRepository
 from app.services.parser_service import ParserService
 from app.services.chunking_service import ChunkingService
@@ -40,6 +41,8 @@ async def process_document_async(document_id_str: str, version_id_str: str, file
             parser = ParserService()
             parsed_pages = parser.parse_file(file_path, ext)
             page_count = len(parsed_pages)
+            total_text_len = sum(len(page.text) for page in parsed_pages)
+            logger.info(f"Ingestion extraction summary: Page Count={page_count} | Extracted Text Length={total_text_len} characters.")
 
             if page_count == 0:
                 raise ValueError("Parsed document yielded zero text contents.")
@@ -48,6 +51,7 @@ async def process_document_async(document_id_str: str, version_id_str: str, file
             chunking = ChunkingService()
             chunks_dto = chunking.split_pages(parsed_pages)
             chunk_count = len(chunks_dto)
+            logger.info(f"Ingestion chunking summary: Total Chunks Created={chunk_count}")
 
             if chunk_count == 0:
                 raise ValueError("Chunking document yielded zero text fragments.")
@@ -55,6 +59,7 @@ async def process_document_async(document_id_str: str, version_id_str: str, file
             # 4. Generate embeddings and add to FAISS index
             vector_service = VectorService()
             texts = [chunk.text for chunk in chunks_dto]
+            logger.info(f"Ingestion embedding generation summary: Generating {len(texts)} embeddings using model: {settings.EMBEDDING_MODEL}")
             
             # Map metadata for vector search mapping
             metadatas = [
