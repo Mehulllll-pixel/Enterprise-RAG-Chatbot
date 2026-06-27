@@ -1,5 +1,7 @@
 // API communication layer with automatic token injection and auto-refresh interceptors.
 
+export const API_BASE = import.meta.env.VITE_API_URL || '';
+
 export interface FetchOptions extends RequestInit {
   skipToken?: boolean;
 }
@@ -47,7 +49,7 @@ class ApiClient {
 
     this.activeRefreshPromise = (async () => {
       try {
-        const response = await fetch('/api/v1/auth/refresh', {
+        const response = await fetch(`${API_BASE}/api/v1/auth/refresh`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -93,18 +95,20 @@ class ApiClient {
       headers
     };
 
+    const fullUrl = url.startsWith('/') ? `${API_BASE}${url}` : url;
+
     // 2. Perform Fetch
-    let response = await fetch(url, fetchConfig);
+    let response = await fetch(fullUrl, fetchConfig);
 
     // 3. Intercept 401 Unauthorized and try to refresh
     if (response.status === 401 && !options.skipToken) {
-      console.warn(`Request to ${url} returned 401. Triggering token refresh...`);
+      console.warn(`Request to ${fullUrl} returned 401. Triggering token refresh...`);
       const newAccessToken = await this.performTokenRefresh();
       
       if (newAccessToken) {
         // Retry request with new token
         headers.set('Authorization', `Bearer ${newAccessToken}`);
-        response = await fetch(url, fetchConfig);
+        response = await fetch(fullUrl, fetchConfig);
       }
     }
 

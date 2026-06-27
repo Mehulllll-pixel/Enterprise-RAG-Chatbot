@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { api } from '../services/api';
+import { api, API_BASE } from '../services/api';
 import { 
   Plus, MessageSquare, Trash2, Send, Bot, User, 
   ChevronRight, Loader2, Sparkles, BookOpen, Clock, BarChart3
@@ -134,7 +134,7 @@ export const ChatConsole: React.FC = () => {
     
     try {
       const token = localStorage.getItem('access_token');
-      const response = await fetch(`/api/v1/chats/${activeSessionId}/messages`, {
+      const response = await fetch(`${API_BASE}/api/v1/chats/${activeSessionId}/messages`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
