@@ -1,0 +1,11 @@
+IT Asset Management Guidelines
+==============================
+
+1. Equipment Provisioning
+All full-time employees are provided with a corporate laptop (either a MacBook Pro or Lenovo ThinkPad) and security accessories. Hardware upgrades can be requested every 3 years or in case of critical hardware failure through the IT support ticketing system.
+
+2. Software and Security Patches
+Employees are prohibited from installing unauthorized software on corporate devices. Anti-virus and endpoint detection software are managed centrally by IT. OS security patches must be installed within 5 days of publication notifications.
+
+3. Return of Equipment
+Upon termination of employment, all corporate assets (laptops, monitors, cables, security tokens) must be returned to the IT desk on or before the employee's final day. Failure to return assets within 10 days will result in a fee matching the depreciated value of the equipment.

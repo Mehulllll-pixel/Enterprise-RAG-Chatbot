@@ -1,106 +1,170 @@
-# Enterprise On-Premise RAG Chatbot Platform
+# Enterprise Grounded RAG Chatbot 🛡️
 
-A production-grade, secure, local Retrieval-Augmented Generation (RAG) platform. The application runs entirely on-premise, ensuring that company documents and user chat transcripts never leave the internal corporate network.
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Python Version](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/)
+[![React Version](https://img.shields.io/badge/react-19.0-61dafb.svg)](https://react.dev/)
+[![Docker Support](https://img.shields.io/badge/docker-ready-blue.svg)](https://www.docker.com/)
 
----
-
-## 1. System Architecture
-
-The platform follows Clean Architecture and SOLID design principles, split into a React client and a FastAPI API gateway:
-
-*   **Frontend (React 19 + TypeScript + Vite + Tailwind CSS):** A responsive, glassmorphic dark-themed dashboard. Integrates real-time Server-Sent Events (SSE) token stream readers, citations panels, confidence metrics meters, user registers, and admin directory panels.
-*   **Backend (FastAPI + Python 3.12 + SQLAlchemy 2.0 + Celery):** Asynchronous API gateway with structured error handlers, SQLAlchemy models with Alembic migrations, repository-service pattern, and role-based access controls (RBAC) token dependency guards.
-*   **Vector Engine & LLM Pipeline (FAISS + sentence-transformers + Ollama):** Department-scoped isolated FAISS indexes, sentence embeddings generated locally using `all-MiniLM-L6-v2`, and text generation processed locally via a Mistral-7B model inside Ollama.
-*   **Semantic Cache Layer (FAISS + Redis):** Stores previously answered queries and vectors locally. Similarity query matches bypass LLM inference, retrieving cached answers in sub-10ms.
-*   **Task Queue (Celery + Redis):** Document parsing (.pdf, .docx, .txt, .md), signature checking, text recursive chunking, and embedding generation are processed asynchronously in the background.
+A secure, production-grade, on-premise Retrieval-Augmented Generation (RAG) platform. Securely ingest corporate documents, index text fragments into isolated departmental boundaries, and query local LLMs offline. Built for absolute data sovereignty, speed, and enterprise reliability.
 
 ---
 
-## 2. Directory Tree Structure
+## 📸 Platform Interface Screenshots
+
+### Redesigned Login Dashboard
+![Futuristic Login Dashboard](docs/screenshots/login_screen.png)
+
+### Conversational Grounded Chat Console
+![Grounded Chat Console](docs/screenshots/chat_console.png)
+
+### Document Management & Statistics Directory
+![Document Management Panel](docs/screenshots/document_library.png)
+
+### Admin Workstation RBAC Panel
+![Admin Directory console](docs/screenshots/admin_console.png)
+
+---
+
+## 🏛️ System Architecture Workflow
+
+```mermaid
+graph TD
+    User([Workstation Client]) -->|Interact / Upload| WebApp[Vite SPA / React 19]
+    WebApp -->|Authenticated REST / SSE| FastAPI[FastAPI Application Server]
+    
+    subgraph Core Security & Caching
+        FastAPI -->|Validate Token| JWT[JWT RBAC Decryptor]
+        FastAPI -->|Query cache| Cache[FAISS + Redis Semantic Cache]
+    end
+    
+    subgraph Background Asynchronous Processing
+        FastAPI -->|Enqueue File parsing| Celery[Celery Tasks Queue]
+        Celery -->|Broker Connection| Redis[Redis Broker / RAM Storage]
+        Celery -->|Extract Text & Chunk| Parser[RecursiveTextSplitter]
+        Parser -->|Load Models| Embeddings[sentence-transformers / all-MiniLM-L6-v2]
+        Embeddings -->|isolated department indices| FAISS[(FAISS Vector Stores)]
+    end
+    
+    subgraph Grounded Inference
+        FastAPI -->|Ground Prompt with Context| Ollama[local Ollama Chat Engine / Mistral 7B]
+    end
+    
+    Celery -->|Persist Metadata| RDB[(PostgreSQL / SQLite)]
+    FastAPI -->|Read Metadata| RDB
+```
+
+---
+
+## 🌟 Core Enterprise Features
+
+*   **🔒 Absolute Data Sovereignty:** Run parsing, embeddings generation (`sentence-transformers/all-MiniLM-L6-v2`), and LLM inference (`Mistral-7B` via Ollama) 100% locally. Zero text, vectors, or chat transcripts transit external networks or APIs.
+*   **⚡ Sub-10ms Semantic Prompt Caching:** Integrated FAISS-based semantic query cache coupled with Redis key-value stores. duplicate or highly similar queries bypass LLM inferences entirely to yield sub-10ms response times.
+*   **🚀 Asynchronous Worker Pipelines:** Celery tasks and Redis background brokers managing document parsing, text chunking, and index insertions.
+*   **📂 Scoped Department Isolation:** Multi-tenant document mapping. Chunks and indexes are isolated dynamically, ensuring employees can only query resources scoped to their security permission boundaries.
+*   **🔑 Workstation Demo Mode:** Instant recruiter login sandbox (`demo@enterprise-rag.ai` / `Demo@123`) loaded with sample HR documents (leave policies, remote working, asset management) and full chat history.
+
+---
+
+## 📂 Repository Organization
 
 ```
-├── backend/                  # FastAPI Application gateway
+enterprise-rag-chatbot/
+├── backend/
 │   ├── app/
-│   │   ├── api/v1/           # REST & SSE stream controllers
-│   │   ├── core/             # DB pooling, security, JWT and Redis fallbacks
-│   │   ├── models/           # Declarative base tables (User, Chat, Chunks, etc.)
-│   │   ├── rag/              # Ollama LLM, FAISS managers, prompts and cache
-│   │   ├── repositories/     # Async database queries managers
-│   │   ├── services/         # Parsing, ingestion, and RAG orchestrators
-│   │   └── workers/          # Celery background workers tasks
-│   ├── alembic/              # Database migration revisions
-│   └── tests/                # Pytest automated test suites
-├── frontend/                 # React SPA Client
+│   │   ├── api/          # FastAPI routes (Auth, Documents, Chats, Admin)
+│   │   ├── core/         # Settings, Database configuration, Security engines
+│   │   ├── models/       # SQLAlchemy tables definitions
+│   │   ├── rag/          # Embeddings singelton, FAISS vector stores, LLM streams
+│   │   └── workers/      # Celery task execution nodes
+│   └── tests/            # Pytest testing suite
+├── frontend/
 │   ├── src/
-│   │   ├── components/       # Route guards
-│   │   ├── context/          # Profile Auth state global providers
-│   │   ├── pages/            # Chat, Library, Register, Admin dashboards
-│   │   └── services/         # api.ts client with transparent token refreshing
-│   └── nginx.conf            # Reverse proxy config for containerized routing
-└── docker-compose.yml        # Multi-container production orchestration
+│   │   ├── components/   # Route guards and UI containers
+│   │   ├── context/      # JWT state context
+│   │   ├── pages/        # Login, ChatConsole, DocumentLibrary, AdminConsole
+│   │   └── services/     # Axios client API configurations
+│   └── package.json
+├── docs/
+│   ├── architecture/     # Diagrams mapping system flows
+│   ├── screenshots/      # Platform interface screenshots
+│   ├── api/              # Swagger API details
+│   └── deployment/       # Render, Vercel, Neon, and Upstash instructions
+├── docker-compose.yml    # Complete stack orchestrator
+├── README.md             # Recruiter developer presentation guide
+├── LICENSE               # Open-source licensing
+└── CONTRIBUTING.md       # Collaboration guidelines
 ```
 
 ---
 
-## 3. Quickstart Guide (Local Development)
+## 🚀 Quickstart Local Setup
 
-### 3.1. Prerequisite Systems
-Ensure the following are installed and running locally:
-1.  **Python 3.12**
-2.  **Node.js 20+**
-3.  **Ollama** (with Mistral-7B downloaded: `ollama run mistral`)
+### System Prerequisites
+*   [Docker & Docker Compose](https://www.docker.com/products/docker-desktop/) (Docker Desktop recommended)
+*   [Ollama](https://ollama.com/) running locally with the **Mistral** model loaded:
+    ```bash
+    ollama run mistral
+    ```
 
-### 3.2. Setup Backend
-1.  Navigate to `backend` directory:
+### Docker Compose Orchestration (Recommended)
+You can launch the entire stack (PostgreSQL, Redis, Backend API, Frontend SPA) with a single command:
+1.  Initialize local settings files:
+    ```bash
+    cp .env.example .env
+    ```
+2.  Start the containers:
+    ```bash
+    docker-compose up --build
+    ```
+3.  Access the applications:
+    *   **Frontend SPA:** `http://localhost:5173`
+    *   **Backend Server:** `http://localhost:8000`
+    *   **Swagger API Docs:** `http://localhost:8000/docs`
+
+---
+
+## 🔧 Developer Manual Local Installation
+
+### Backend Setup (FastAPI)
+1.  Navigate into backend folder and create virtual environment:
     ```bash
     cd backend
-    ```
-2.  Create virtual environment and install packages:
-    ```bash
     python -m venv venv
     .\venv\Scripts\activate
+    ```
+2.  Install dependencies:
+    ```bash
     pip install -r requirements.txt
     ```
 3.  Apply Alembic database migrations:
     ```bash
-    .\venv\Scripts\alembic upgrade head
+    alembic upgrade head
     ```
-4.  Run FastAPI Dev Server:
+4.  Run database seeder (initializes roles, demo user, and chunks policy files):
     ```bash
-    .\venv\Scripts\python -m uvicorn app.main:app --reload --port 8000
+    $env:PYTHONPATH='.'
+    python app/utils/seeder.py
+    ```
+5.  Launch API server:
+    ```bash
+    python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
     ```
 
-### 3.3. Setup Frontend
-1.  Navigate to `frontend` directory:
+### Frontend Setup (Vite / React)
+1.  Navigate into frontend folder and install dependencies:
     ```bash
-    cd ../frontend
-    ```
-2.  Install dependencies:
-    ```bash
+    cd frontend
     npm install
     ```
-3.  Run Dev Server (proxies API queries automatically to `http://localhost:8000`):
+2.  Start Vite dev server:
     ```bash
     npm run dev
     ```
 
 ---
 
-## 4. Production Deployment (Docker Compose)
-
-The entire multi-container service stack (PostgreSQL, Redis, Ollama, Backend, Celery Worker, and Nginx Frontend) can be initialized with a single command:
-
-```bash
-docker-compose up --build -d
-```
-
-### 4.1. Network Proxying
-Nginx serves the frontend client on port **3000** and reverse-proxies `/api` traffic directly to the backend service container, disabling buffering for smooth SSE streams.
-
----
-
-## 5. Seeded Accounts & Roles
-
-On startup, the seeder automatically registers standard roles, the `VAL` validation department, and an admin user:
-*   **Admin Email:** `admin@test.com` (or `admin@company.com`)
-*   **Password:** `AdminPass123!`
+## 🛡️ Recruiter Demo Sandbox Login
+Recruiters can immediately explore the platform without creating accounts or indexing documents:
+*   **Email Address:** `demo@enterprise-rag.ai`
+*   **Session Password:** `Demo@123`
+*   **Quick Entry:** Simply click the **"Explore Demo Environment"** button on the sign-in page to trigger the typing simulation and log in instantly.

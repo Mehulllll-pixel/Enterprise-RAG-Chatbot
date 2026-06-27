@@ -184,3 +184,33 @@ async def reindex_document(
     )
 
     return {"message": "Re-indexing task started.", "status": "PENDING"}
+
+@router.get(
+    "/{id}/chunks",
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(has_permissions(["doc:read"]))]
+)
+async def get_document_chunks(
+    id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Retrieve indexed text chunks for document previewing."""
+    doc_service = DocumentService(db)
+    doc = await doc_service.get_document(id)
+    if current_user.role_id != "ADMIN" and current_user.department_id != doc.department_id:
+        raise AuthorizationException("Access denied. Document belongs to another department.")
+    
+    if not doc.versions:
+        return []
+    
+    # Get latest version
+    latest_version = sorted(doc.versions, key=lambda v: v.version)[-1]
+    
+    from sqlalchemy.future import select
+    from app.models.document import DocumentChunk
+    query = select(DocumentChunk).where(DocumentChunk.document_version_id == latest_version.id).order_by(DocumentChunk.chunk_index)
+    res = await db.execute(query)
+    chunks = res.scalars().all()
+    
+    return [{"index": c.chunk_index, "page_number": c.page_number, "text": c.text_content} for c in chunks]

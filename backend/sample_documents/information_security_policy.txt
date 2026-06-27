@@ -1,0 +1,14 @@
+Information Security Standards
+==============================
+
+1. Data Encryption
+All corporate and customer data must be encrypted both in transit (using TLS 1.3 or higher) and at rest (using AES-256 encryption standards). Data backups must be stored in secure, geographically isolated cloud servers and encrypted with rotated keys.
+
+2. Password Standards
+All employee account passwords must satisfy the following complexity constraints:
+- Minimum length of 14 characters.
+- Must contain at least one uppercase letter, one lowercase letter, one number, and one special character (e.g. !, @, #, $).
+- Passwords must be rotated every 90 days. Multi-Factor Authentication (MFA) is mandatory for all console logins.
+
+3. Clean Desk Policy
+Employees must lock their screens (using Win+L or Cmd+Ctrl+Q) whenever leaving their desks, even for short breaks. No confidential paper documents should be left unattended on desks overnight; all printouts must be shredded after use.
