@@ -66,20 +66,14 @@ async def startup_event():
 
     # Run database migrations and seeding programmatically
     try:
-        import os
-        from alembic.config import Config
-        from alembic import command
+        import sys
+        import subprocess
         from app.core.database import AsyncSessionLocal
         from app.utils.seeder import seed_database
 
-        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        ini_path = os.path.join(base_dir, "alembic.ini")
-        alembic_cfg = Config(ini_path)
-        alembic_cfg.set_main_option("script_location", os.path.join(base_dir, "alembic"))
-        alembic_cfg.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
-
-        logger.info("Running database migrations on startup...")
-        command.upgrade(alembic_cfg, "head")
+        logger.info("Running database migrations via subprocess on startup...")
+        # Run Alembic upgrade head in a separate process
+        subprocess.run([sys.executable, "-m", "alembic", "upgrade", "head"], check=True)
         logger.info("Database migrations completed successfully.")
 
         logger.info("Running database seeding on startup...")
