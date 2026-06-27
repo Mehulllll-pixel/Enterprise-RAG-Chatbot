@@ -13,6 +13,7 @@ from app.services.chat_service import ChatService
 from app.services.rag_service import RAGService
 from app.models.user import User
 from app.core.exceptions import AuthorizationException
+from app.utils.logger import logger
 
 router = APIRouter(prefix="/chats", tags=["chats"])
 

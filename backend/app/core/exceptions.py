@@ -3,6 +3,7 @@ from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from typing import Any, Dict, Optional, Union
 from app.utils.logger import logger
+from app.core.config import settings
 
 class APIException(Exception):
     """Base API Exception for structured error reporting."""
