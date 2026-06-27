@@ -108,7 +108,16 @@ async def process_document_async(document_id_str: str, version_id_str: str, file
 def process_document_task(self, document_id: str, version_id: str, file_path: str) -> None:
     """Celery synchronous wrapper scheduling async parsing pipeline."""
     try:
-        asyncio.run(process_document_async(document_id, version_id, file_path))
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            loop = None
+
+        if loop and loop.is_running():
+            logger.info("Running event loop detected. Scheduling async ingestion as background task.")
+            loop.create_task(process_document_async(document_id, version_id, file_path))
+        else:
+            asyncio.run(process_document_async(document_id, version_id, file_path))
     except Exception as exc:
         logger.warning(f"Retrying ingestion job due to execution error: {str(exc)}")
         try:

@@ -104,3 +104,20 @@ async def test_rbac_restriction(client: AsyncClient, db: AsyncSession):
     assert response.status_code == 403
     data = response.json()
     assert data["error"]["code"] == "AUTHORIZATION_FAILED"
+
+@pytest.mark.asyncio
+async def test_list_departments(client: AsyncClient):
+    """Verify that any authenticated user can retrieve the corporate departments list."""
+    login_response = await client.post(
+        "/api/v1/auth/login",
+        json={"email": "admin@test.com", "password": "AdminPass123!"}
+    )
+    token = login_response.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    response = await client.get("/api/v1/users/departments", headers=headers)
+    assert response.status_code == 200
+    data = response.json()
+    assert isinstance(data, list)
+    assert len(data) > 0
+    assert any(d["code"] == "ENG" for d in data)

@@ -5,10 +5,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.api.dependencies import get_current_user, has_permissions
-from app.schemas.user import UserCreate, UserUpdate, UserResponse, UserResponseWithRelations
+from app.schemas.user import UserCreate, UserUpdate, UserResponse, UserResponseWithRelations, DepartmentResponse
 from app.services.user_service import UserService
 from app.models.user import User
+from app.models.department import Department
 from app.core.exceptions import AuthorizationException
+from sqlalchemy.future import select
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -16,6 +18,12 @@ router = APIRouter(prefix="/users", tags=["users"])
 async def get_my_profile(current_user: User = Depends(get_current_user)):
     """Fetch active logged-in user profile details."""
     return current_user
+
+@router.get("/departments", response_model=List[DepartmentResponse], status_code=status.HTTP_200_OK)
+async def list_departments(db: AsyncSession = Depends(get_db)):
+    """Retrieve list of corporate departments directory."""
+    result = await db.execute(select(Department).order_by(Department.name.asc()))
+    return list(result.scalars().all())
 
 @router.get(
     "",
