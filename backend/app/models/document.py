@@ -37,6 +37,7 @@ class DocumentVersion(Base):
     )
     version: Mapped[int] = mapped_column(Integer, nullable=False)
     file_path: Mapped[str] = mapped_column(String(512), nullable=False)
+    file_hash: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
     file_size: Mapped[int] = mapped_column(BigInteger, nullable=False)
     mime_type: Mapped[str] = mapped_column(String(100), nullable=False)
     page_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
