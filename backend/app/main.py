@@ -66,14 +66,20 @@ async def startup_event():
 
     # Run database migrations and seeding programmatically
     try:
+        import os
         import sys
         import subprocess
         from app.core.database import AsyncSessionLocal
         from app.utils.seeder import seed_database
 
+        # Ensure PYTHONPATH is set to the backend root directory
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        env = os.environ.copy()
+        env["PYTHONPATH"] = base_dir
+
         logger.info("Running database migrations via subprocess on startup...")
-        # Run Alembic upgrade head in a separate process
-        subprocess.run([sys.executable, "-m", "alembic", "upgrade", "head"], check=True)
+        # Run Alembic upgrade head in a separate process with correct path and directory
+        subprocess.run([sys.executable, "-m", "alembic", "upgrade", "head"], check=True, env=env, cwd=base_dir)
         logger.info("Database migrations completed successfully.")
 
         logger.info("Running database seeding on startup...")
