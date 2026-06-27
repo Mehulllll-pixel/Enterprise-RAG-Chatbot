@@ -20,10 +20,7 @@ A secure, production-grade, on-premise Retrieval-Augmented Generation (RAG) plat
 ### Document Management & Statistics Directory
 ![Document Management Panel](docs/screenshots/document_library.png)
 
-### Admin Workstation RBAC Panel
-![Admin Directory console](docs/screenshots/admin_console.png)
 
----
 
 ## 🏛️ System Architecture Workflow
 
