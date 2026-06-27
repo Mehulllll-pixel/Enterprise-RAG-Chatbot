@@ -4,12 +4,36 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing_extensions import Annotated
 import os
 
+import json
+
 def parse_cors_origins(v: Union[str, List[str]]) -> List[str]:
-    if isinstance(v, str) and not v.startswith("["):
-        return [i.strip() for i in v.split(",")]
-    elif isinstance(v, (list, str)):
-        return v
-    raise ValueError(v)
+    required_origins = [
+        "https://enterprise-rag-chatbot-kappa.vercel.app",
+        "https://enterprise-rag-chatbot-llp3ygc4f-mehulllll-s-projects.vercel.app"
+    ]
+    origins = []
+    if isinstance(v, str):
+        if v.startswith("[") and v.endswith("]"):
+            try:
+                parsed = json.loads(v)
+                if isinstance(parsed, list):
+                    origins = [str(i).strip().rstrip("/") for i in parsed]
+            except Exception:
+                pass
+        if not origins:
+            origins = [i.strip().rstrip("/") for i in v.split(",") if i.strip()]
+    elif isinstance(v, list):
+        origins = [str(i).strip().rstrip("/") for i in v]
+    else:
+        raise ValueError(v)
+
+    # Ensure required origins are always present
+    for req in required_origins:
+        req_stripped = req.rstrip("/")
+        if req_stripped not in origins:
+            origins.append(req_stripped)
+
+    return origins
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
@@ -34,7 +58,8 @@ class Settings(BaseSettings):
         "http://localhost:5173",
         "http://127.0.0.1:5173",
         "http://localhost:8000",
-        "https://enterprise-rag-chatbot-llp3ygc4f-mehulllll-s-projects.vercel.app"
+        "https://enterprise-rag-chatbot-llp3ygc4f-mehulllll-s-projects.vercel.app",
+        "https://enterprise-rag-chatbot-kappa.vercel.app"
     ]
 
     # Security

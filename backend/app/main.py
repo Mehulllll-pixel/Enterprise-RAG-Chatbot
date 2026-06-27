@@ -23,18 +23,19 @@ app = FastAPI(
     openapi_url=f"{settings.API_V1_STR}/openapi.json"
 )
 
-# CORS configuration
+# Custom Middlewares
+app.add_middleware(RequestLoggingMiddleware)
+app.add_middleware(SecurityHeadersMiddleware)
+
+# CORS configuration (added last so it executes first as outermost middleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.BACKEND_CORS_ORIGINS,
+    allow_origin_regex=r"https://enterprise-rag-chatbot-.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Custom Middlewares
-app.add_middleware(RequestLoggingMiddleware)
-app.add_middleware(SecurityHeadersMiddleware)
 
 # Centralized Exception Handlers
 app.add_exception_handler(APIException, api_exception_handler)
@@ -58,6 +59,7 @@ async def health_check():
 async def startup_event():
     logger.info("Starting up Enterprise RAG Chatbot Service...")
     logger.info(f"Loaded config: Environment={settings.APP_ENV}, Debug={settings.DEBUG}")
+    logger.info(f"Allowed CORS origins (BACKEND_CORS_ORIGINS): {settings.BACKEND_CORS_ORIGINS}")
     # Connect Redis
     redis_client_manager.connect()
 
