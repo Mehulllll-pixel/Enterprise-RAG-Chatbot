@@ -30,7 +30,12 @@ class Settings(BaseSettings):
     # CORS
     BACKEND_CORS_ORIGINS: Annotated[
         List[str], BeforeValidator(parse_cors_origins)
-    ] = ["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:8000"]
+    ] = [
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:8000",
+        "https://enterprise-rag-chatbot-llp3ygc4f-mehulllll-s-projects.vercel.app"
+    ]
 
     # Security
     JWT_SECRET_KEY: str
