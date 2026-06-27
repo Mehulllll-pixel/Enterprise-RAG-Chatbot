@@ -50,16 +50,17 @@ class RedisClient:
 
         try:
             logger.info(f"Attempting connection to Redis at {settings.REDIS_HOST}:{settings.REDIS_PORT}")
-            # We initialize standard client
             client = aioredis.from_url(
                 settings.REDIS_URL,
                 encoding="utf-8",
                 decode_responses=True
             )
-            # Run a test ping in a separate sync wrapper or schedule check
             self.client = client
             self.is_fallback = False
         except Exception as e:
+            if settings.APP_ENV == "production":
+                logger.critical(f"Production Redis connection failure: {str(e)}")
+                raise ConnectionError(f"Failed to connect to Redis service: {str(e)}") from e
             logger.error(f"Failed to connect to Redis: {str(e)}. Falling back to in-memory store.")
             self.client = InMemoryRedisFallback()
             self.is_fallback = True
@@ -76,6 +77,9 @@ class RedisClient:
             await self.client.ping()
             logger.info("Successfully connected to Redis instance.")
         except Exception as e:
+            if settings.APP_ENV == "production":
+                logger.critical(f"Production Redis connection loss on ping: {str(e)}")
+                raise ConnectionError(f"Redis service unavailable: {str(e)}") from e
             logger.warning(f"Redis ping failed: {str(e)}. Switching to in-memory fallback client.")
             await self.client.close()
             self.client = InMemoryRedisFallback()

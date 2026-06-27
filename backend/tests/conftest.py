@@ -14,8 +14,8 @@ from app.models.department import Department
 from app.core.security import hash_password
 from app.utils.seeder import DEFAULT_ROLES
 
-# Test Database Configuration - In-memory SQLite
-TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
+# Test Database Configuration - File-based SQLite for multi-connection sharing
+TEST_DATABASE_URL = "sqlite+aiosqlite:///./test_enterprise_rag.db"
 
 engine = create_async_engine(
     TEST_DATABASE_URL,
@@ -59,6 +59,14 @@ def event_loop() -> Generator[asyncio.AbstractEventLoop, None, None]:
     loop = asyncio.get_event_loop_policy().new_event_loop()
     yield loop
     loop.close()
+    
+    # Clean up test database file from disk
+    import os
+    if os.path.exists("./test_enterprise_rag.db"):
+        try:
+            os.remove("./test_enterprise_rag.db")
+        except Exception:
+            pass
 
 @pytest_asyncio.fixture(scope="function")
 async def db() -> AsyncGenerator[AsyncSession, None]:
