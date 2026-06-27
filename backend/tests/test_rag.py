@@ -203,3 +203,61 @@ async def test_chats_rest_apis(client: AsyncClient, db: AsyncSession):
             assert c.messages[1].role == "assistant"
             assert c.messages[1].content == "Mistral answer"
             assert c.messages[1].confidence_score == 0.5
+
+
+from app.rag.llm.gemini_provider import GeminiProvider
+
+@pytest.mark.asyncio
+async def test_gemini_health_check():
+    """Verify Gemini health checker returns True on HTTP 200."""
+    with patch("app.core.config.settings.GEMINI_API_KEY", "test-key"):
+        with patch("httpx.AsyncClient.get") as mock_get:
+            mock_get.return_value = MagicMock(status_code=200)
+            gemini = GeminiProvider()
+            assert await gemini.check_health() is True
+
+            mock_get.return_value = MagicMock(status_code=403)
+            assert await gemini.check_health() is False
+
+@pytest.mark.asyncio
+async def test_gemini_chat_stream_generation():
+    """Verify Gemini provider parses streaming candidate chunks correctly."""
+    with patch("app.core.config.settings.GEMINI_API_KEY", "test-key"):
+        gemini = GeminiProvider()
+        
+        mock_response = MagicMock(status_code=200)
+        async def mock_iter_lines():
+            lines = [
+                b' [',
+                b'  {',
+                b'    "candidates": [{',
+                b'      "content": {',
+                b'        "parts": [{"text": "Hello "}]',
+                b'      }',
+                b'    }]',
+                b'  }',
+                b'  ,',
+                b'  {',
+                b'    "candidates": [{',
+                b'      "content": {',
+                b'        "parts": [{"text": "Gemini!"}]',
+                b'      }',
+                b'    }]',
+                b'  }',
+                b' ]'
+            ]
+            for line in lines:
+                yield line
+
+        mock_response.aiter_lines = mock_iter_lines
+        
+        mock_context_mgr = MagicMock()
+        mock_context_mgr.__aenter__ = AsyncMock(return_value=mock_response)
+        mock_context_mgr.__aexit__ = AsyncMock(return_value=None)
+        
+        with patch("httpx.AsyncClient.stream", return_value=mock_context_mgr):
+            tokens = []
+            async for token in gemini.generate_chat_stream([{"role": "user", "content": "hi"}], temperature=0.0):
+                tokens.append(token)
+                
+            assert "".join(tokens) == "Hello Gemini!"

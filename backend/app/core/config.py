@@ -76,9 +76,17 @@ class Settings(BaseSettings):
         port = data.get("REDIS_PORT")
         return f"redis://{host}:{port}/0"
 
-    # Ollama
+    # LLM Settings
+    LLM_PROVIDER: str = "ollama"  # ollama or gemini
+    
+    # Ollama Specific
     OLLAMA_BASE_URL: str = "http://localhost:11434"
     LLM_MODEL: str = "mistral:7b"
+    
+    # Gemini Specific
+    GEMINI_API_KEY: Optional[str] = None
+    GEMINI_MODEL: str = "gemini-1.5-flash"
+
     EMBEDDING_MODEL: str = "all-MiniLM-L6-v2"
 
     # Initial Admin Seeding
