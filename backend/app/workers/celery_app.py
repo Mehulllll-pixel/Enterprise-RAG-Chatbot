@@ -1,5 +1,18 @@
+import socket
 from celery import Celery
 from app.core.config import settings
+from app.utils.logger import logger
+
+# Check if Redis port is open on host
+def is_redis_available() -> bool:
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.settimeout(0.5)
+        s.connect((settings.REDIS_HOST, settings.REDIS_PORT))
+        s.close()
+        return True
+    except Exception:
+        return False
 
 # Instantiate Celery
 celery_app = Celery(
@@ -23,3 +36,8 @@ celery_app.conf.update(
 
 # Autodiscover tasks from workers module
 celery_app.autodiscover_tasks(["app.workers"])
+
+if not is_redis_available():
+    logger.warning("Redis is unreachable. Configuring Celery to run in EAGER mode (synchronous in-process execution).")
+    celery_app.conf.task_always_eager = True
+    celery_app.conf.task_eager_propagates = True

@@ -36,12 +36,24 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
             raise
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
-    """Applies strict security headers to all responses."""
+    """Applies strict security headers to responses, with safe exceptions for API documentation."""
     async def dispatch(self, request: Request, call_next) -> Response:
         response = await call_next(request)
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-XSS-Protection"] = "1; mode=block"
-        response.headers["Content-Security-Policy"] = "default-src 'self';"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        
+        # Relax CSP only for API Documentation endpoints to allow Swagger UI resources
+        path = request.url.path
+        if path in ["/docs", "/redoc"] or path.endswith("openapi.json"):
+            response.headers["Content-Security-Policy"] = (
+                "default-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+                "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+                "img-src 'self' data: https://cdn.jsdelivr.net; "
+                "font-src 'self' https://cdn.jsdelivr.net;"
+            )
+        else:
+            response.headers["Content-Security-Policy"] = "default-src 'self';"
+            
         return response

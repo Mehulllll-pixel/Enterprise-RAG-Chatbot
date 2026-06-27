@@ -19,12 +19,12 @@ export const Login: React.FC = () => {
     setError(null);
 
     try {
-      // FastAPI OAuth2 request format is multipart/form-data (OAuth2PasswordRequestForm)
-      const formData = new FormData();
-      formData.append('username', email);
-      formData.append('password', password);
+      const payload = {
+        email: email,
+        password: password
+      };
 
-      const response = await api.post('/api/v1/auth/token', formData);
+      const response = await api.post('/api/v1/auth/login', payload);
       
       await login(response.access_token, response.refresh_token);
       navigate('/');
