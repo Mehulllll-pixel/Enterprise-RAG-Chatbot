@@ -18,44 +18,46 @@ from tests.conftest import MockRedis, TestingSessionLocal
 @pytest.mark.asyncio
 async def test_llm_health_check():
     """Verify health checker yields True on HTTP 200."""
-    with patch("httpx.AsyncClient.get") as mock_get:
-        mock_get.return_value = MagicMock(status_code=200)
-        llm = LLMService()
-        assert await llm.check_health() is True
+    with patch("app.core.config.settings.LLM_PROVIDER", "ollama"):
+        with patch("httpx.AsyncClient.get") as mock_get:
+            mock_get.return_value = MagicMock(status_code=200)
+            llm = LLMService()
+            assert await llm.check_health() is True
 
-        mock_get.return_value = MagicMock(status_code=500)
-        assert await llm.check_health() is False
+            mock_get.return_value = MagicMock(status_code=500)
+            assert await llm.check_health() is False
 
 @pytest.mark.asyncio
 async def test_llm_chat_stream_generation():
     """Verify LLM client parses streaming JSON lines from Ollama endpoint."""
-    llm = LLMService()
-    
-    mock_response = MagicMock(status_code=200)
-    # Define an async generator to simulate line streaming
-    async def mock_iter_lines():
-        lines = [
-            b'{"message": {"content": "Hello "}}',
-            b'{"message": {"content": "world!"}}'
-        ]
-        for line in lines:
-            yield line
+    with patch("app.core.config.settings.LLM_PROVIDER", "ollama"):
+        llm = LLMService()
+        
+        mock_response = MagicMock(status_code=200)
+        # Define an async generator to simulate line streaming
+        async def mock_iter_lines():
+            lines = [
+                b'{"message": {"content": "Hello "}}',
+                b'{"message": {"content": "world!"}}'
+            ]
+            for line in lines:
+                yield line
 
-    mock_response.iter_lines = mock_iter_lines
-    mock_response.aiter_lines = mock_iter_lines
-    
-    # Mock httpx client stream
-    mock_context_mgr = MagicMock()
-    mock_context_mgr.__aenter__ = AsyncMock(return_value=mock_response)
-    mock_context_mgr.__aexit__ = AsyncMock(return_value=None)
-    
-    with patch("httpx.AsyncClient.stream", return_value=mock_context_mgr):
-        tokens = []
-        async for token in llm.generate_chat_stream([{"role": "user", "content": "hi"}], temperature=0.0):
-            tokens.append(token)
-            
-        assert len(tokens) == 2
-        assert "".join(tokens) == "Hello world!"
+        mock_response.iter_lines = mock_iter_lines
+        mock_response.aiter_lines = mock_iter_lines
+        
+        # Mock httpx client stream
+        mock_context_mgr = MagicMock()
+        mock_context_mgr.__aenter__ = AsyncMock(return_value=mock_response)
+        mock_context_mgr.__aexit__ = AsyncMock(return_value=None)
+        
+        with patch("httpx.AsyncClient.stream", return_value=mock_context_mgr):
+            tokens = []
+            async for token in llm.generate_chat_stream([{"role": "user", "content": "hi"}], temperature=0.0):
+                tokens.append(token)
+                
+            assert len(tokens) == 2
+            assert "".join(tokens) == "Hello world!"
 
 @pytest.mark.asyncio
 async def test_semantic_cache_workflow():

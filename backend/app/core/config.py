@@ -77,7 +77,7 @@ class Settings(BaseSettings):
         return f"redis://{host}:{port}/0"
 
     # LLM Settings
-    LLM_PROVIDER: str = "ollama"  # ollama or gemini
+    LLM_PROVIDER: str = "gemini"  # ollama or gemini
     
     # Ollama Specific
     OLLAMA_BASE_URL: str = "http://localhost:11434"
