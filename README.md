@@ -9,7 +9,7 @@ A secure, production-grade, on-premise Retrieval-Augmented Generation (RAG) plat
 
 ---
 
-## 📸 Platform Interface Screenshots
+##  Platform Interface Screenshots
 
 ### Redesigned Login Dashboard
 ![Futuristic Login Dashboard](docs/screenshots/login_screen.png)
@@ -52,17 +52,17 @@ graph TD
 
 ---
 
-## 🌟 Core Enterprise Features
+##  Core Enterprise Features
 
-*   **🔒 Absolute Data Sovereignty:** Run parsing, embeddings generation (`sentence-transformers/all-MiniLM-L6-v2`), and LLM inference (`Mistral-7B` via Ollama) 100% locally. Zero text, vectors, or chat transcripts transit external networks or APIs.
-*   **⚡ Sub-10ms Semantic Prompt Caching:** Integrated FAISS-based semantic query cache coupled with Redis key-value stores. duplicate or highly similar queries bypass LLM inferences entirely to yield sub-10ms response times.
-*   **🚀 Asynchronous Worker Pipelines:** Celery tasks and Redis background brokers managing document parsing, text chunking, and index insertions.
-*   **📂 Scoped Department Isolation:** Multi-tenant document mapping. Chunks and indexes are isolated dynamically, ensuring employees can only query resources scoped to their security permission boundaries.
-*   **🔑 Workstation Demo Mode:** Instant recruiter login sandbox (`demo@enterprise-rag.ai` / `Demo@123`) loaded with sample HR documents (leave policies, remote working, asset management) and full chat history.
+*   ** Absolute Data Sovereignty:** Run parsing, embeddings generation (`sentence-transformers/all-MiniLM-L6-v2`), and LLM inference (`Mistral-7B` via Ollama) 100% locally. Zero text, vectors, or chat transcripts transit external networks or APIs.
+*   ** Sub-10ms Semantic Prompt Caching:** Integrated FAISS-based semantic query cache coupled with Redis key-value stores. duplicate or highly similar queries bypass LLM inferences entirely to yield sub-10ms response times.
+*   ** Asynchronous Worker Pipelines:** Celery tasks and Redis background brokers managing document parsing, text chunking, and index insertions.
+*   ** Scoped Department Isolation:** Multi-tenant document mapping. Chunks and indexes are isolated dynamically, ensuring employees can only query resources scoped to their security permission boundaries.
+*   ** Workstation Demo Mode:** Instant recruiter login sandbox (`demo@enterprise-rag.ai` / `Demo@123`) loaded with sample HR documents (leave policies, remote working, asset management) and full chat history.
 
 ---
 
-## 📂 Repository Organization
+##  Repository Organization
 
 ```
 enterprise-rag-chatbot/
@@ -94,7 +94,7 @@ enterprise-rag-chatbot/
 
 ---
 
-## 🚀 Quickstart Local Setup
+##  Quickstart Local Setup
 
 ### System Prerequisites
 *   [Docker & Docker Compose](https://www.docker.com/products/docker-desktop/) (Docker Desktop recommended)
@@ -120,7 +120,7 @@ You can launch the entire stack (PostgreSQL, Redis, Backend API, Frontend SPA) w
 
 ---
 
-## 🔧 Developer Manual Local Installation
+##  Developer Manual Local Installation
 
 ### Backend Setup (FastAPI)
 1.  Navigate into backend folder and create virtual environment:
